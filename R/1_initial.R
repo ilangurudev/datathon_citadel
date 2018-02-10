@@ -2,10 +2,12 @@ pacman::p_load(tidyverse, rebus, janitor, sp, lubridate, hms)
 
 uber_2014 <- read_csv("data/uber_trips_2014.csv")
 uber_2015 <- read_csv("data/uber_trips_2015.csv")
-green_taxis <- read_csv("data/green_trips.csv")
-geography <- read_csv("data/geography.csv")
+green_taxis <- read_csv("data/green_trips_new_2.csv")
+yellow_taxis <- read_csv("data/yellow_trips_new.csv")
+geography <- read_csv("data/geographic.csv")
 zones <- read_csv("data/zones.csv")
-demographics <- read_csv("data/demogaphics.csv")
+demographics <- read_csv("data/demographics.csv")
+weather <- read_csv("data/weather.csv")
 
 
 zones <- 
@@ -14,7 +16,7 @@ zones <-
 
 geography <- 
   geography %>% 
-  mutate(coordinate = rep(c("lat", "lon"), nrow(.)/2),
+  mutate(coordinate = rep(c("lon", "lat"), nrow(.)/2),
          vertice = rep(1:(nrow(.)/2), each = 2)) %>% 
   gather(nta_code, value, -vertice, -coordinate) %>% 
   spread(coordinate, value) %>% 
@@ -31,7 +33,8 @@ find_nta_code <- function(lat, lon){
                nta = x$nta_code[1])
       })
     
-    nta <- locations %>% filter(inside == 1) %>% pull(nta)
+    nta <- locations %>% filter(inside != 0) %>% pull(nta)
+    # print(nta)
     
     if(length(nta) > 0){
       nta
@@ -40,25 +43,58 @@ find_nta_code <- function(lat, lon){
     }
 }
 
-uber_2014 <- 
-  uber_2014 %>% 
-    mutate(pickup_datetime = mdy_hm(pickup_datetime),
-           pickup_date = as.Date(pickup_datetime),
-           pickup_hour = hour(pickup_datetime),
-           nta_code = map2_chr(pickup_latitude, pickup_longitude, find_nta_code)) %>% 
-  left_join(zones)
+# nta_code = map2_chr(pickup_latitude, pickup_longitude, find_nta_code)
+uber_2014_1 <- 
+  uber_2014 %>%
+    mutate(pickup_date = pickup_datetime %>% str_extract(START %R% one_or_more(or(DGT, PUNCT)) %R% SPACE) %>% str_trim(),
+           pickup_hour = pickup_datetime %>% str_replace(pickup_date, "") %>% str_extract(one_or_more(DIGIT)) %>% as.integer(),
+           pickup_date = mdy(pickup_date),
+           service = "uber") %>%
+  select(-base, -pickup_datetime)
+  
 
-uber_2015 <- 
+uber_2015_1 <- 
   uber_2015 %>%
-    mutate(pickup_datetime = mdy_hm(pickup_datetime),
-           pickup_date = as.Date(pickup_datetime),
-           pickup_hour = hour(pickup_datetime)) %>% 
-    rename(zone_id = pickup_location_id) %>% 
-    left_join(zones)
+    mutate(pickup_date = as.Date(pickup_datetime),
+           pickup_hour = hour(pickup_datetime),
+           service = "uber") %>% 
+    rename(zone_id = pickup_location_id) %>%
+    select(-pickup_datetime, -dispatch_base, -affiliate_base)
+
+green_taxis_1 <-
+  green_taxis %>% 
+  mutate(pickup_date = as.Date(pickup_datetime),
+         pickup_hour = hour(pickup_datetime),
+         service = "green") %>% 
+  select(-total_amount, -trip_distance, -passenger_count, -starts_with("dropoff"), -pickup_datetime)
   
-green_taxis <-     
+yellow_taxis_1 <-
+  yellow_taxis %>% 
+  mutate(pickup_date = as.Date(pickup_datetime),
+         pickup_hour = hour(pickup_datetime),
+         service = "yellow") %>% 
+  select(-total_amount, -trip_distance, -passenger_count, -starts_with("dropoff"), -pickup_datetime)
+
+combined <- bind_rows(uber_2014_1, uber_2015_1, yellow_taxis_1, green_taxis_1)
+
+weather <- 
+  weather %>% 
+  mutate(pickup_date = mdy(date)) 
   
-  
+weather %>% select(lattitude, longitude)
+
+saveRDS(combined, "data/combined_trip.rds")
+combined <- load(file = "data/combined_trip.rds")
+
+
+
+
+
+# 
+# mta_1 <- 
+#   mta %>% 
+
+
 
 
 
