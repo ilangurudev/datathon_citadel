@@ -89,9 +89,52 @@ combined_weather_taxi <-
   select(-latitude, - longitude)
 
 
+count_days <- 
+  combined_weather_taxi %>% 
+  count(pickup_date, service)
+
+
+count_days %>% 
+  ggplot(aes(pickup_date, n,  fill = service)) +
+  geom_bar(position = "stack", stat = "identity") +
+  scale_fill_manual(values = c("green" = "chartreuse4", "uber" = "gray14","yellow" =  "darkgoldenrod1")) +
+  theme_minimal()
+
+ggsave("plots/service_date.png")
+  
+
+count_days %>% 
+  ggplot(aes(pickup_date, n,  fill = service)) +
+  geom_bar(position = "fill", stat = "identity") +
+  scale_fill_manual(values = c("green" = "chartreuse4", "uber" = "gray14","yellow" =  "darkgoldenrod1")) +
+  theme_minimal()
+
+ggsave("plots/service_date_fill.png")
+
+count_days %>%
+  mutate(year = year(pickup_date)) %>% 
+  ggplot(aes(pickup_date, n,  col = service)) +
+  geom_line(stat = "identity") +
+  scale_color_manual(values = c("green" = "chartreuse4", "uber" = "gray14","yellow" =  "darkgoldenrod1")) +
+  theme_minimal()
+
+ggsave("plots/service_date_line.png")
 
 
 
+combined_weather_taxi %>%
+  mutate(year = year(pickup_date),
+         temp_bins = case_when(
+           avg_temp <= quantile(avg_temp, .25) ~ "low",
+           avg_temp <= quantile(avg_temp, .75) ~ "medium",
+           TRUE ~ "high"
+         ) %>% fct_reorder2(low, medium, high)) %>% 
+  count(year, service, temp_bins) %>% 
+  ggplot(aes(n, fill = temp_bins)) +
+  geom_density() +
+  facet_grid(service~.) +
+  scale_fill_manual(values = c("green" = "chartreuse4", "uber" = "gray14","yellow" =  "darkgoldenrod1")) +
+  theme_minimal()
 
 
   
