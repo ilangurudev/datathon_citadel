@@ -81,10 +81,36 @@ weather <-
   weather %>% 
   mutate(pickup_date = mdy(date)) 
   
-weather %>% select(lattitude, longitude)
+distinct_weather_locs <- 
+  weather %>% 
+  select(latitude, longitude, location) %>% 
+  distinct() %>% 
+  mutate(location_abc = c("A","B","C"))
 
-saveRDS(combined, "data/combined_trip.rds")
-combined <- load(file = "data/combined_trip.rds")
+weather <- 
+  weather %>% 
+  left_join(distinct_weather_locs)
+
+calc_location_abc <-function(lat, lon){
+  distinct_weather_locs %>% 
+    mutate(distance_abc = map2_dbl(latitude, longitude, function(x, y){
+      ((x - lat)^2 + (y-lon)^2)^(0.5)
+    })) %>% 
+    filter(distance_abc == min(distance_abc)) %>% 
+    slice(1) %>% 
+    pull(location_abc)
+} 
+
+
+combined %>% 
+ sample_n(10) %>% 
+  filter(!is.na(pickup_latitude)) %>% 
+  mutate(location_abc = map2_chr(pickup_latitude, pickup_longitude, possibly(calc_location_abc, NA)))
+
+
+
+combined %>% write_csv("data/combined_trip.csv")
+
 
 
 
