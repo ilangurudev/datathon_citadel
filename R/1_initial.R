@@ -77,37 +77,70 @@ yellow_taxis_1 <-
 
 combined <- bind_rows(uber_2014_1, uber_2015_1, yellow_taxis_1, green_taxis_1)
 
-weather <- 
+weather_1 <- 
   weather %>% 
-  mutate(pickup_date = mdy(date)) 
+  mutate(pickup_date = mdy(date)) %>% 
+  group_by(pickup_date) %>% 
+  summarise_if(is.numeric,mean, na.rm = T)
+
+combined_weather_taxi <- 
+  combined %>% 
+  left_join(weather_1) %>% 
+  select(-latitude, - longitude)
+
+
+
+
+
+
+
   
-distinct_weather_locs <- 
-  weather %>% 
-  select(latitude, longitude, location) %>% 
-  distinct() %>% 
-  mutate(location_abc = c("A","B","C"))
+# distinct_weather_locs <- 
+#   weather %>% 
+#   select(latitude, longitude, location) %>% 
+#   distinct() %>% 
+#   mutate(location_abc = c("A","B","C"))
+# 
+# weather <- 
+#   weather %>% 
+#   left_join(distinct_weather_locs)
+# # 
+# calc_location_abc <-function(lat, lon, loc_id = NA){
+#   if(is.na(loc)){
+#     distinct_weather_locs %>% 
+#       mutate(distance_abc = map2_dbl(latitude, longitude, function(x, y){
+#         ((x - lat)^2 + (y-lon)^2)^(0.5)
+#       })) %>% 
+#       filter(distance_abc == min(distance_abc)) %>% 
+#       slice(1) %>% 
+#       pull(location_abc)
+#   } else {
+#     zones %>% 
+#       filter(zone_id == loc) %>% 
+#       left_join(geography, by = "nta_code") %>% 
+#       summarise(latitude = mean(lat), )
+#     
+#     
+#   }
+#   
+# } 
 
-weather <- 
-  weather %>% 
-  left_join(distinct_weather_locs)
 
-calc_location_abc <-function(lat, lon){
-  distinct_weather_locs %>% 
-    mutate(distance_abc = map2_dbl(latitude, longitude, function(x, y){
-      ((x - lat)^2 + (y-lon)^2)^(0.5)
-    })) %>% 
-    filter(distance_abc == min(distance_abc)) %>% 
-    slice(1) %>% 
-    pull(location_abc)
-} 
-
-
-combined %>% 
- sample_n(10) %>% 
-  filter(!is.na(pickup_latitude)) %>% 
-  mutate(location_abc = map2_chr(pickup_latitude, pickup_longitude, possibly(calc_location_abc, NA)))
-
-
+# taxi_weather_2014 <- 
+#   combined %>%
+#   filter(!is.na(pickup_latitude)) %>%
+#   filter(year(pickup_date) == 2014) %>% 
+#   sample_n(1000000) %>% 
+#   mutate(location_abc = map2_chr(pickup_latitude, pickup_longitude, possibly(calc_location_abc, NA))) %>% 
+#   left_join(weather)
+# 
+# taxi_weather_2015 <- 
+#   combined %>%
+#   filter(!is.na(pickup_latitude)) %>%
+#   filter(year(pickup_date) == 2015) %>%
+#   sample_n(1000000) %>% 
+#   mutate(location_abc = map2_chr(pickup_latitude, pickup_longitude, possibly(calc_location_abc, NA))) %>% 
+#   left_join(weather)
 
 combined %>% write_csv("data/combined_trip.csv")
 
