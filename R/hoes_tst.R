@@ -1,1 +1,10 @@
 library(dplyr)
+demogaphics <- read.csv("C:/Users/smrho/Desktop/compatition/demogaphics.csv")
+geography <- read.csv("C:/Users/smrho/Desktop/compatition/geography.csv")
+green_trips <- read.csv("C:/Users/smrho/Desktop/compatition/green_trips.csv")
+uber_trips_2014 <- read.csv("C:/Users/smrho/Desktop/compatition/uber_trips_2014.csv")
+uber_trips_2015 <- read.csv("C:/Users/smrho/Desktop/compatition/uber_trips_2015.csv")
+weather <- read.csv("C:/Users/smrho/Desktop/compatition/weather.csv")
+yellow_trips <- read.csv("C:/Users/smrho/Desktop/compatition/yellow_trips.csv")
+zones <- read.csv("C:/Users/smrho/Desktop/compatition/zones.csv")
+
