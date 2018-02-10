@@ -2,8 +2,15 @@ pacman::p_load(tidyverse, rebus, janitor, sp, lubridate, hms)
 
 uber_2014 <- read_csv("data/uber_trips_2014.csv")
 uber_2015 <- read_csv("data/uber_trips_2015.csv")
+green_taxis <- read_csv("data/green_trips.csv")
 geography <- read_csv("data/geography.csv")
-nta <- read_csv("data/zones.csv")
+zones <- read_csv("data/zones.csv")
+demographics <- read_csv("data/demogaphics.csv")
+
+
+zones <- 
+  zones %>% 
+  rename(zone_id = location_id)
 
 geography <- 
   geography %>% 
@@ -13,7 +20,7 @@ geography <-
   spread(coordinate, value) %>% 
   arrange(nta_code, vertice) 
 
-find_nta <- function(lat, lon){
+find_nta_code <- function(lat, lon){
   
   
     locations <- 
@@ -37,15 +44,21 @@ uber_2014 <-
   uber_2014 %>% 
     mutate(pickup_datetime = mdy_hm(pickup_datetime),
            pickup_date = as.Date(pickup_datetime),
-           pickup_hour = hour(pickup_datetime))
+           pickup_hour = hour(pickup_datetime),
+           nta_code = map2_chr(pickup_latitude, pickup_longitude, find_nta_code)) %>% 
+  left_join(zones)
 
-# uber_2015 <- 
+uber_2015 <- 
   uber_2015 %>%
-    mutate(nta = )
-    
+    mutate(pickup_datetime = mdy_hm(pickup_datetime),
+           pickup_date = as.Date(pickup_datetime),
+           pickup_hour = hour(pickup_datetime)) %>% 
+    rename(zone_id = pickup_location_id) %>% 
+    left_join(zones)
+  
+green_taxis <-     
+  
+  
 
-# mutate(nta = map2_chr(pickup_latitude, pickup_longitude, find_nta))
 
-
-uber_2015 %>% 
 
