@@ -91,7 +91,12 @@ combined_weather_taxi <-
 
 count_days <- 
   combined_weather_taxi %>% 
-  count(pickup_date, service)
+  count(pickup_date, service) %>% 
+  mutate(n = case_when(
+    service == "green" ~ n * 5,
+    service == "yellow" ~ n * 20,
+    TRUE ~ as.double(n)
+  ))
 
 
 count_days %>% 
@@ -128,16 +133,98 @@ combined_weather_taxi %>%
            avg_temp <= quantile(avg_temp, .25) ~ "low",
            avg_temp <= quantile(avg_temp, .75) ~ "medium",
            TRUE ~ "high"
-         ) %>% fct_reorder2(low, medium, high)) %>% 
-  count(year, service, temp_bins) %>% 
-  ggplot(aes(n, fill = temp_bins)) +
+         ) %>% factor(levels = c("low", "medium", "high"), ordered = TRUE)) %>% 
+  
+  ggplot(aes(avg_temp, fill = temp_bins)) +
   geom_density() +
-  facet_grid(service~.) +
   scale_fill_manual(values = c("green" = "chartreuse4", "uber" = "gray14","yellow" =  "darkgoldenrod1")) +
   theme_minimal()
 
+combined_weather_taxi %>% 
+  group_by(service, pickup_date) %>% 
+  summarise(snowfall = mean(snow_depth), n = n()) %>% 
+  mutate(snowfall_yes = if_else(snowfall > 0, "yes", "no"),
+         n = case_when(
+           service == "green" ~ n * 5,
+           service == "yellow" ~ n * 20,
+           TRUE ~ as.double(n)
+         )) %>% 
+  ungroup() %>% 
+  filter(!is.na(snowfall_yes)) %>% 
+  ggplot(aes(n, col = factor(snowfall_yes))) + 
+  geom_density() +
+  facet_wrap(service~.)
 
-  
+combined_weather_taxi %>%  
+  mutate(temperature_bin = cut(avg_temp, breaks = quantile(avg_temp, seq(0, 1, 0.2)))) %>% 
+  select(temperature_bin, everything()) %>% 
+  arrange(avg_temp) %>% mutate(temperature_bin = temperature_bin %>% as.factor() ) %>%
+  filter(!is.na(temperature_bin)) %>% 
+  count(temperature_bin, service) %>% 
+  mutate(n = case_when(
+           service == "green" ~ n * 5,
+           service == "yellow" ~ n * 20,
+           TRUE ~ as.double(n)
+         )) %>% 
+  ggplot(aes(temperature_bin, n, col = service)) +
+    geom_line(stat = "identity") +
+  scale_color_manual(values = c("green" = "chartreuse4", "uber" = "gray14","yellow" =  "darkgoldenrod1")) +
+  labs(x = "precipitation",
+       y = "Proportion of cabs")
+
+ggsave("plots/avg_temp_usage.png")
+
+
+combined_weather_taxi %>%  
+  mutate(temperature_bin = cut(snowfall, breaks = quantile(snowfall, seq(0, 1, 0.2)))) %>% 
+  select(temperature_bin, everything()) %>% 
+  arrange(snowfall) %>% mutate(temperature_bin = temperature_bin %>% as.factor() ) %>%
+  filter(!is.na(temperature_bin)) %>% 
+  count(temperature_bin, service) %>% 
+  mutate(n = case_when(
+    service == "green" ~ n * 5,
+    service == "yellow" ~ n * 20,
+    TRUE ~ as.double(n)
+  )) %>% 
+  ggplot(aes(temperature_bin, n, fill = service)) +
+  geom_bar(stat = "identity", position = "fill") +
+  scale_fill_manual(values = c("green" = "chartreuse4", "uber" = "gray14","yellow" =  "darkgoldenrod1")) +
+  labs(x = "precipitation",
+       y = "Proportion of cabs")
+
+ggsave("plots/snowfall_usage.png")
+
+
+x <- 
+combined_weather_taxi %>%  
+  mutate(temperature_bin = cut(avg_temp, breaks = quantile(avg_temp, seq(0, 1, 0.2)))) %>% 
+  select(temperature_bin, everything()) %>% 
+  arrange(avg_temp) %>% mutate(temperature_bin = temperature_bin %>% as.factor() ) %>%
+  filter(!is.na(temperature_bin)) %>% 
+  count(temperature_bin, service) %>% 
+  mutate(n = case_when(
+    service == "green" ~ n * 5,
+    service == "yellow" ~ n * 20,
+    TRUE ~ as.double(n)
+  )) %>%
+  group_by(temperature_bin) %>% 
+  mutate(prop = n/sum(n))
+
+y <- 
+  combined_weather_taxi %>% 
+  mutate(temperature_bin = cut(avg_temp, breaks = quantile(avg_temp, seq(0, 1, 0.2)))) %>% 
+  select(temperature_bin, everything()) %>% 
+  arrange(avg_temp) %>% mutate(temperature_bin = temperature_bin %>% as.factor() ) %>%
+  filter(!is.na(temperature_bin)) %>% 
+  group_by(pickup_date, temperature_bin, service)
+
+y %>% 
+  mutate(n = case_when(
+    service == "green" ~ n * 5,
+    service == "yellow" ~ n * 20,
+    TRUE ~ as.double(n)
+  ))
+
 # distinct_weather_locs <- 
 #   weather %>% 
 #   select(latitude, longitude, location) %>% 
